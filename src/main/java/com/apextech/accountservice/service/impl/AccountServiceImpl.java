@@ -27,7 +27,6 @@ public class AccountServiceImpl implements AccountService {
     private final CustomerRepository customerRepository;
     private final AccountSequenceRepository accountSequenceRepository;
     private final BankAccountRepository bankAccountRepository;
-    private final EntityManager entityManager;
     private final SessionService sessionService;
 
     @Override
