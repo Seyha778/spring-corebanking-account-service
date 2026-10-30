@@ -3,7 +3,9 @@ package com.apextech.accountservice.service.impl;
 import com.apextech.accountservice.constant.AccountStatusEnum;
 import com.apextech.accountservice.constant.CustomerKycStatusEnum;
 import com.apextech.accountservice.dto.request.OpenAccountRequest;
+import com.apextech.accountservice.dto.request.SessionRequest;
 import com.apextech.accountservice.dto.response.OpenAccountResponse;
+import com.apextech.accountservice.dto.response.OpenAccountSessionResponse;
 import com.apextech.accountservice.dto.response.SessionData;
 import com.apextech.accountservice.dto.response.SessionResponse;
 import com.apextech.accountservice.entity.AccountSequenceEntity;
@@ -17,7 +19,11 @@ import com.apextech.accountservice.service.SessionService;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.server.ResponseStatusException;
+import tools.jackson.databind.ObjectMapper;
 
 @Service
 @RequiredArgsConstructor
@@ -29,17 +35,21 @@ public class AccountServiceImpl implements AccountService {
     private final BankAccountRepository bankAccountRepository;
     private final SessionService sessionService;
 
+    private final ObjectMapper objectMapper;
+
     @Override
     public SessionResponse openAccountValidate(OpenAccountRequest request) {
         //Validate cif
         CustomerEntity customer = customerRepository
                 .findByCif(request.getCif())
-                .orElseThrow(() -> new IllegalArgumentException(
+                .orElseThrow(() -> new ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
                         "Customer CIF was not found."
                 ));
 
         if (!CustomerKycStatusEnum.FULL.toString().equals(customer.getStatus())) {
-            throw new IllegalArgumentException(
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
                     "Customer must full KYC before opening an account."
             );
         }
@@ -53,7 +63,8 @@ public class AccountServiceImpl implements AccountService {
                 .orElse(1);
 
         if (seqNo > 999) {
-            throw new IllegalStateException(
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
                     "Account sequence limit reached for this CIF and branch."
             );
         }
@@ -68,44 +79,51 @@ public class AccountServiceImpl implements AccountService {
                 + cif
                 + String.format("%03d", seqNo);
 
+        // build account opening date
+        OpenAccountSessionResponse data = OpenAccountSessionResponse.builder()
+                .accountNumber(accountNumber)
+                .accountType(request.getAccountType())
+                .currency(request.getCurrency())
+                .cif(cif)
+                .branchCode(branchCode)
+                .build();
+
         SessionData sessionData = SessionData.builder()
                 .build();
 
-        sessionData.put("accountNumber", accountNumber);
-        sessionData.put("currency", request.getCurrency());
-        sessionData.put("cif", cif);
-        sessionData.put("branchCode", branchCode);
-        sessionData.put("accountType", request.getAccountType());
-
+        sessionData.put("data", data);
         return sessionService.create(sessionData);
 
     }
 
     @Override
-    public OpenAccountResponse openAccountCommit(String sessionId) {
-
-        //Verify session id
-        boolean isValidSessionId = sessionService.verify(sessionId);
+    public OpenAccountResponse openAccountCommit(SessionRequest request) {
 
         //Get session data
-        if(isValidSessionId){
-            SessionData sessionData = sessionService.getSession(sessionId);
-            if (sessionData != null) {
-                BankAccountEntity account = BankAccountEntity.builder()
-                        .accountNumber((String) sessionData.get("accountNumber"))
-                        .accountType((String) sessionData.get("accountType"))
-                        .currency((String) sessionData.get("currency"))
-                        .branchCode((String) sessionData.get("branchCode"))
-                        .cif((String) sessionData.get("cif"))
-                        .status(AccountStatusEnum.ACTIVE.toString())
-                        .build();
-                bankAccountRepository.save(account);
-                return OpenAccountResponse.builder()
-                        .accountNumber((String) sessionData.get("accountNumber"))
-                        .accountType((String) sessionData.get("accountType"))
-                        .currency((String) sessionData.get("currency"))
-                        .build();
-            }
+        SessionData sessionData = sessionService.getSession(request.getSessionId());
+        if (sessionData != null) {
+            OpenAccountSessionResponse openingAccountSession = objectMapper.convertValue(
+                    sessionData.get("data"),
+                    OpenAccountSessionResponse.class
+            );
+            String accountNo = openingAccountSession.getAccountNumber();
+            String accountType = openingAccountSession.getAccountType();
+            String currency = openingAccountSession.getCurrency();
+
+            BankAccountEntity account = BankAccountEntity.builder()
+                    .accountNumber(accountNo)
+                    .accountType(accountType)
+                    .currency(currency)
+                    .branchCode(openingAccountSession.getBranchCode())
+                    .cif(openingAccountSession.getCif())
+                    .status(AccountStatusEnum.ACTIVE.toString())
+                    .build();
+            bankAccountRepository.save(account);
+            return OpenAccountResponse.builder()
+                    .accountNumber(accountNo)
+                    .accountType(accountType)
+                    .currency(currency)
+                    .build();
         }
         return null;
     }

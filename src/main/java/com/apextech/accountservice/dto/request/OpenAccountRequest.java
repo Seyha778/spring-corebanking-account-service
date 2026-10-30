@@ -1,12 +1,11 @@
 package com.apextech.accountservice.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-
-import java.time.OffsetDateTime;
 
 @Getter
 @Setter
@@ -14,25 +13,19 @@ import java.time.OffsetDateTime;
 @ToString
 public class OpenAccountRequest {
 
-    @JsonProperty("account_number")
-    private String accountNumber;
-
     @JsonProperty("cif")
+    @NotBlank
     private String cif;
 
     @JsonProperty("branch_code")
+    @NotBlank
     private String branchCode;
 
     @JsonProperty("account_type")
     private String accountType;
 
     @JsonProperty("currency")
+    @NotBlank
     private String currency;
-
-    @JsonProperty("status")
-    private String status;
-
-    @JsonProperty("created_on")
-    private OffsetDateTime createdOn;
 
 }
