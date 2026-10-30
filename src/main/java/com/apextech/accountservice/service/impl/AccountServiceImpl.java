@@ -10,18 +10,16 @@ import com.apextech.accountservice.dto.response.SessionData;
 import com.apextech.accountservice.dto.response.SessionResponse;
 import com.apextech.accountservice.entity.AccountSequenceEntity;
 import com.apextech.accountservice.entity.BankAccountEntity;
-import com.apextech.accountservice.entity.CustomerEntity;
+import com.apextech.accountservice.entity.BankCustomerEntity;
 import com.apextech.accountservice.repository.AccountSequenceRepository;
 import com.apextech.accountservice.repository.BankAccountRepository;
 import com.apextech.accountservice.repository.CustomerRepository;
 import com.apextech.accountservice.service.AccountService;
 import com.apextech.accountservice.service.SessionService;
-import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 import tools.jackson.databind.ObjectMapper;
 
@@ -40,7 +38,7 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public SessionResponse openAccountValidate(OpenAccountRequest request) {
         //Validate cif
-        CustomerEntity customer = customerRepository
+        BankCustomerEntity customer = customerRepository
                 .findByCif(request.getCif())
                 .orElseThrow(() -> new ResponseStatusException(
                 HttpStatus.BAD_REQUEST,

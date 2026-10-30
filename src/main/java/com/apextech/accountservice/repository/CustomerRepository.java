@@ -1,14 +1,14 @@
 package com.apextech.accountservice.repository;
 
-import com.apextech.accountservice.entity.CustomerEntity;
+import com.apextech.accountservice.entity.BankCustomerEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 
 public interface CustomerRepository
-        extends JpaRepository<CustomerEntity, Long> {
+        extends JpaRepository<BankCustomerEntity, Long> {
 
-    Optional<CustomerEntity> findByCif(String cif);
+    Optional<BankCustomerEntity> findByCif(String cif);
 
     boolean existsByEmailIgnoreCase(String email);
 

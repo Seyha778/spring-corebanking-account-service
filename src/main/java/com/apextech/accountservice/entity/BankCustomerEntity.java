@@ -11,16 +11,12 @@ import java.time.OffsetDateTime;
 
 @Entity
 @Table(
-        name = "customers",
+        name = "bank_customers",
         schema = "dgtl_backend",
         uniqueConstraints = {
                 @UniqueConstraint(
-                        name = "uk_customer_cif",
+                        name = "uk_bank_customer_cif",
                         columnNames = "cif"
-                ),
-                @UniqueConstraint(
-                        name = "uk_customer_document",
-                        columnNames = {"document_type", "document_number"}
                 )
         }
 )
@@ -29,13 +25,20 @@ import java.time.OffsetDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CustomerEntity {
+public class BankCustomerEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "cif", unique = true, length = 10)
+    @Column(
+            name = "cif",
+            nullable = false,
+            unique = true,
+            insertable = false,
+            updatable = false,
+            length = 10
+    )
     private String cif;
 
     @Column(name = "first_name", nullable = false)
